@@ -1,0 +1,31 @@
+{
+	"compilerOptions": {
+		"alwaysStrict": true,
+		"forceConsistentCasingInFileNames": true,
+		"module": "CommonJS",
+		"moduleResolution": "node",
+		"noImplicitAny": true,
+		"noImplicitThis": true,
+		"preserveConstEnums": true,
+		"listFiles": false,
+		"skipLibCheck": true,
+		"pretty": true,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitReturns": true,
+		"noUnusedLocals": true,
+		"target": "es6",
+		"noUnusedParameters": true,
+		"experimentalDecorators": true,
+		"strictPropertyInitialization": true,
+		"strictNullChecks": true,
+		"strictBindCallApply": true,
+		"allowSyntheticDefaultImports": true,
+		"sourceMap": true,
+		"resolveJsonModule": true,
+		"emitDecoratorMetadata": true,
+		"checkJs": false,
+		"noEmit": true
+	},
+	"compileOnSave": true,
+	"include": ["./app"]
+}
