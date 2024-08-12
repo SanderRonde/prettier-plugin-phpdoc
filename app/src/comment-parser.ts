@@ -1,5 +1,6 @@
 import { trimSpaces } from './util';
 import { ParsedTypeNode, parseType } from './type-parser';
+import { Comment } from 'php-parser';
 
 const TAGS_WITH_TYPES = [
 	'method',
@@ -74,8 +75,8 @@ interface ParsedTagCommentNode {
 
 export type ParsedCommentNode = TextCommentNode | ParsedTagCommentNode;
 
-export function parseComment(comment: string): ParsedCommentNode[] {
-	const nodes = parseCommentNodes(comment);
+export function parseComment(comment: Comment): ParsedCommentNode[] {
+	const nodes = parseCommentNodes(comment.value);
 	return nodes.map((node) => {
 		if (node.type === CommentNodeType.Text) {
 			return node;
@@ -89,7 +90,7 @@ export function parseComment(comment: string): ParsedCommentNode[] {
 			};
 		}
 
-		const { parsedType, rest } = parseType(description);
+		const { parsedType, rest } = parseType(description, comment);
 		return {
 			...node,
 			parsedType,

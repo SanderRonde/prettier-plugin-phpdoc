@@ -1,5 +1,23 @@
-import { ParserOptions } from 'prettier';
+import { PrettierOptions } from './options';
 import { ParsedTypeNode, TupleDictEntryWithKey, TypeKind } from './type-parser';
+
+export function getNextWrapLevel(wrapLevel: WrapLevel): WrapLevel | null {
+	const next = wrapLevel + 1;
+	if (!Object.values(WrapLevel).includes(next)) {
+		return null;
+	}
+	return next;
+}
+
+export enum WrapLevel {
+	Never,
+	/** Dictionaries */
+	L1,
+	/** Generics */
+	L2,
+	/** Tuples, conditionals */
+	L3 = 3,
+}
 
 class TypePrinter {
 	private _lines: string[] = [];
@@ -7,11 +25,14 @@ class TypePrinter {
 	private _indent: number = 0;
 
 	public constructor(
-		private readonly _wrap: boolean,
-		private readonly _options: ParserOptions
+		private readonly _wrapLevel: WrapLevel,
+		private readonly _options: PrettierOptions
 	) {}
 
 	private get _whiteSpace() {
+		if (this._options.indent) {
+			return this._options.indent;
+		}
 		const hasTabs = this._options.useTabs;
 		if (hasTabs) {
 			return '\t';
@@ -19,8 +40,8 @@ class TypePrinter {
 		return ' '.repeat(this._options.tabWidth);
 	}
 
-	private _newline() {
-		if (!this._wrap) {
+	private _newline(level: WrapLevel) {
+		if (level > this._wrapLevel) {
 			return;
 		}
 		this._lines.push(this._line);
@@ -39,13 +60,19 @@ class TypePrinter {
 			this._print(node.value);
 		} else if (node.kind === TypeKind.WithGenerics) {
 			this.printType(node.node);
+
+			this._indent++;
 			this._print('<');
+			this._newline(WrapLevel.L2);
 			for (let i = 0; i < node.generics.length; i++) {
 				if (i > 0) {
 					this._print(', ');
+					this._newline(WrapLevel.L2);
 				}
 				this.printType(node.generics[i]);
 			}
+			this._indent--;
+			this._newline(WrapLevel.L2);
 			this._print('>');
 		} else if (node.kind === TypeKind.StaticAccess) {
 			this.printType(node.class);
@@ -53,34 +80,32 @@ class TypePrinter {
 			this.printType(node.member);
 		} else if (node.kind === TypeKind.TupleDict) {
 			this._print('array{');
-			if (!node.entries.every((entry) => entry.key)) {
-				// Not every entry has a key, this is a tuple
-				for (let i = 0; i < node.entries.length; i++) {
-					this.printType(node.entries[i].value);
-					if (i !== node.entries.length - 1) {
-						this._print(', ');
-					}
-				}
-			} else {
+			if (node.entries.length) {
+				const wrapLevel = node.entries.every((entry) => entry.key)
+					? WrapLevel.L1
+					: WrapLevel.L3;
 				// This is a dictionary
 				this._indent++;
-				this._print('');
-				this._newline();
+				this._newline(wrapLevel);
 				for (let i = 0; i < node.entries.length; i++) {
-					const entry = node.entries[i] as TupleDictEntryWithKey;
-					this.printType(entry.key!);
-					if (entry.optional) {
-						this._print('?');
+					const entry = node.entries[i];
+					if (entry.key) {
+						this.printType(entry.key!);
+						if (entry.optional) {
+							this._print('?');
+						}
+						this._print(': ');
+						this.printType(entry.value);
+					} else {
+						this.printType(node.entries[i].value);
 					}
-					this._print(': ');
-					this.printType(entry.value);
 					if (i !== node.entries.length - 1) {
 						this._print(', ');
-						this._newline();
+						this._newline(wrapLevel);
 					}
 				}
 				this._indent--;
-				this._newline();
+				this._newline(wrapLevel);
 			}
 			this._print('}');
 		} else if (node.kind === TypeKind.Record) {
@@ -90,7 +115,7 @@ class TypePrinter {
 			this.printType(node.value);
 			this._print('>');
 		} else if (node.kind === TypeKind.ArrayList) {
-			this._print('array<');
+			this._print(`${node.name}<`);
 			this.printType(node.type);
 			this._print('>');
 		} else if (node.kind === TypeKind.ArraySquareBracket) {
@@ -110,13 +135,39 @@ class TypePrinter {
 				if (i > 0) {
 					this._print(', ');
 				}
-				this.printType(node.parameters[i]);
+				this.printType(node.parameters[i].type);
+				if (node.parameters[i].name) {
+					this._print(' ' + node.parameters[i].name);
+				}
 			}
 			this._print('): ');
 			this.printType(node.returnType);
 		} else if (node.kind === TypeKind.StringLiteral) {
 			const quote = node.quote === 'single' ? "'" : '"';
 			this._print(quote + node.value + quote);
+		} else if (node.kind === TypeKind.Parentheses) {
+			this._print('(');
+			this.printType(node.type);
+			this._print(')');
+		} else if (node.kind === TypeKind.ConditionalType) {
+			this._indent++;
+			this._newline(WrapLevel.L3);
+			this.printType(node.check);
+			this._print(' is ');
+			this.printType(node.extends);
+			this._newline(WrapLevel.L3);
+			this._print(' ? ');
+			this.printType(node.trueType);
+			this._newline(WrapLevel.L3);
+			this._print(' : ');
+			this.printType(node.falseType);
+			this._indent--;
+		} else if (node.kind === TypeKind.Spread) {
+			this._print('...');
+		} else if (node.kind === TypeKind.ModifierKeyword) {
+			this.printType(node.modifier);
+			this._print(' ');
+			this.printType(node.target);
 		} else {
 			assertUnreachable(node);
 		}
@@ -134,10 +185,10 @@ function assertUnreachable(x: never): never {
 
 export function printType(
 	node: ParsedTypeNode,
-	options: ParserOptions,
-	wrap: boolean
+	options: PrettierOptions,
+	wrapLevel: WrapLevel
 ) {
-	const printer = new TypePrinter(wrap, options);
+	const printer = new TypePrinter(wrapLevel, options);
 	printer.printType(node);
 	return printer.getLines();
 }

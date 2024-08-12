@@ -1,10 +1,17 @@
 import { Program } from 'php-parser';
-import { Parser, ParserOptions } from 'prettier';
+import { Parser } from 'prettier';
 import { parseComment } from './comment-parser';
 import { printComment } from './comment-printer';
+import { PrettierOptions } from './options';
 
 const LINE_PREFIX = ' * ';
-function formatPhpDoc(text: string, program: Program, options: ParserOptions) {
+const COMMENT_START = '/**';
+const COMMENT_END = ' */';
+function formatPhpDoc(
+	text: string,
+	program: Program,
+	options: PrettierOptions
+) {
 	if (!program.comments) {
 		return program;
 	}
@@ -21,14 +28,31 @@ function formatPhpDoc(text: string, program: Program, options: ParserOptions) {
 			const line = lines[comment.loc.start.line - 1];
 			defaultIndent = line.slice(0, comment.loc.start.column);
 		}
-		const parsed = parseComment(comment.value);
-		comment.value = `/**\n${printComment(
+		const isMultiline = comment.value.includes('\n');
+		const parsed = parseComment(comment);
+		const padding = defaultIndent + `${COMMENT_START} ${COMMENT_END}`;
+		const printedCommentLines = printComment(
 			parsed,
 			options,
-			defaultIndent + LINE_PREFIX
-		)
-			.map((line) => LINE_PREFIX + line)
-			.join('\n')}\n */`;
+			// We pick the longest possible indent here. This ensures we don't end
+			// up in an instable state. If we were to pick the shortest indent when
+			// the comment is multiline, that would lead to a situation where we have
+			// a long indent, then wrap it to multiline, then we call the same thing
+			// again but with a shorter max indent, leading to some text possibly wrapping.
+			padding
+		);
+		if (
+			isMultiline ||
+			printedCommentLines.length > 1 ||
+			printedCommentLines[0].length + padding.length >
+				(options.phpDocPrintWidth ?? options.printWidth)
+		) {
+			comment.value = `${COMMENT_START}\n${printedCommentLines
+				.map((line) => LINE_PREFIX + line)
+				.join('\n')}\n${COMMENT_END}`;
+		} else {
+			comment.value = `${COMMENT_START} ${printedCommentLines[0]}${COMMENT_END}`;
+		}
 		return comment;
 	});
 	return program;
@@ -53,7 +77,7 @@ export const getParsers = () => ({
 		return {
 			...pluginPhp.parsers.php,
 			parse: parserParse
-				? (text: string, options: ParserOptions) => {
+				? (text: string, options: PrettierOptions) => {
 						const parsed = parserParse(text, options);
 						if ('then' in parsed) {
 							return parsed.then((program: Program) =>

@@ -1,15 +1,29 @@
-import { ParserOptions } from 'prettier';
 import { CommentNodeType, ParsedCommentNode } from './comment-parser';
-import { printType } from './type-printer';
+import { getNextWrapLevel, printType, WrapLevel } from './type-printer';
 import { trimSpaces } from './util';
+import { PrettierOptions } from './options';
 
-function wrapText(text: string, width: number, initialLine?: string): string[] {
+interface WrapConfig {
+	width: number;
+	tabWidth: number;
+	shouldWrap: boolean;
+}
+
+function pushWrappingText(
+	text: string,
+	config: WrapConfig,
+	initialLine?: string
+): string[] {
 	const textLines = text.split('\n');
 	const lines: string[] = [];
 	for (let i = 0; i < textLines.length; i++) {
 		let line = i === 0 && initialLine ? initialLine : '';
 		for (const word of textLines[i].split(' ')) {
-			if (line.length + word.length > width) {
+			if (
+				config.shouldWrap &&
+				(line + word).replace(/\t/g, () => ' '.repeat(config.tabWidth))
+					.length > config.width
+			) {
 				lines.push(trimSpaces(line));
 				line = '';
 			}
@@ -22,28 +36,35 @@ function wrapText(text: string, width: number, initialLine?: string): string[] {
 
 export function printComment(
 	nodes: ParsedCommentNode[],
-	options: ParserOptions,
+	options: PrettierOptions,
 	defaultIndent: string
 ): string[] {
 	const remainingWidth =
-		options.printWidth - (defaultIndent.length + ' * '.length);
+		(options.phpDocPrintWidth || options.printWidth) -
+		(defaultIndent.length + ' * '.length);
 
+	const config: WrapConfig = {
+		width: remainingWidth,
+		tabWidth: options.tabWidth,
+		shouldWrap: options.wrapText,
+	};
 	const lines: string[] = [];
 	for (const node of nodes) {
 		if (node.type === CommentNodeType.Text) {
 			// Plain text, now wrap it to the desired line length
-			lines.push(...wrapText(node.content, remainingWidth));
+			lines.push(...pushWrappingText(node.content, config));
 		} else if (!node.parsedType) {
 			// No type, this just follows the format `@tag description`. We can wrap as above
 			lines.push(
-				...wrapText(`${node.tag} ${node.description}`, remainingWidth)
+				...pushWrappingText(`${node.tag} ${node.description}`, config)
 			);
 		} else {
 			// The type needs to be printed and wrapped in the process.
+			let wrapLevel: WrapLevel | null = WrapLevel.Never;
 			const unwrappedType = printType(
 				node.parsedType,
 				options,
-				false
+				wrapLevel
 			).join('');
 			const descriptionParts = node.description.split(' ');
 			const unwrappedMinLine = trimSpaces(
@@ -52,23 +73,40 @@ export function printComment(
 			if (unwrappedMinLine.length <= remainingWidth) {
 				// No need to wrap the type, just print this
 				lines.push(
-					...wrapText(
+					...pushWrappingText(
 						node.description ? ` ${node.description}` : '',
-						remainingWidth,
+						config,
 						`${node.tag} ${unwrappedType}`
 					)
 				);
 			} else {
-				// The type needs to be wrapped
-				const wrappedType = printType(node.parsedType, options, true);
+				// The type needs to be wrapped, see what level we can get away with
+				wrapLevel = WrapLevel.L1;
+				let wrappedType: string[] = [];
+				do {
+					wrappedType = printType(
+						node.parsedType,
+						options,
+						wrapLevel
+					);
+					wrapLevel = getNextWrapLevel(wrapLevel);
+				} while (
+					wrapLevel &&
+					[`${node.tag} ${wrappedType[0]}`, ...wrappedType].some(
+						(line) => line.length > remainingWidth
+					)
+				);
+
 				lines.push(`${node.tag} ${wrappedType[0]}`);
-				lines.push(...wrappedType.slice(1, -1));
-				if (wrappedType.length > 1) {
+				lines.push(...wrappedType.slice(1));
+				if (node.description) {
+					lines[lines.length - 1] += ` ${descriptionParts[0]}`;
+				}
+				if (descriptionParts.length > 1) {
 					lines.push(
-						...wrapText(
-							node.description ? ` ${node.description}` : '',
-							remainingWidth,
-							wrappedType[wrappedType.length - 1]
+						...pushWrappingText(
+							` ${descriptionParts.slice(1)}`,
+							config
 						)
 					);
 				}

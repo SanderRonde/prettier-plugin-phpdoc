@@ -1,8 +1,6 @@
 <?php
 
-/**
- * @var array<string, array{bool, ?int}>
- */
+/** @var array<string, array{bool, ?int}> */
 $someVar = [];
 
 class DemoFile {
@@ -20,8 +18,9 @@ class DemoFile {
 	}
 
 	/**
+	 * This is a very long text that will wrap. This is a very long text that will wrap. This is a very long text that will wrap. This is a very long text that will wrap.
 	 * @param array<string, array<int, array<string, mixed>>> $userData Multi-dimensional array of user data
-	 * @param callable(mixed): mixed $transformCallback Callback function to transform individual data points
+	 * @param callable(mixed $withVar, int): mixed $transformCallback Callback function to transform individual data points
 	 * @param array{
 	 * 	aggregation: 'a'|''|'cdwda'|"dwada",
 	 * 	filters: array<int, array{
