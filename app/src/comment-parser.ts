@@ -52,7 +52,7 @@ function parseCommentNodes(comment: string) {
 			});
 		} else {
 			const lastNode = nodes[nodes.length - 1];
-			if (lastNode.type === CommentNodeType.TextTag) {
+			if (lastNode?.type === CommentNodeType.TextTag) {
 				lastNode.description += '\n' + trimmedLine;
 			} else {
 				nodes.push({

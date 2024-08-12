@@ -8,7 +8,8 @@ export type ParsedTypeNode =
 	| ArrayListNode
 	| ArraySquareBracketNode
 	| UnionNode
-	| CallableNode;
+	| CallableNode
+	| StringNode;
 
 export enum TypeKind {
 	Maybe = 'maybe',
@@ -21,6 +22,7 @@ export enum TypeKind {
 	ArraySquareBracket = 'arraySquareBracket',
 	Union = 'union',
 	Callable = 'callable',
+	StringLiteral = 'string',
 }
 
 interface MaybeNode {
@@ -89,37 +91,17 @@ interface CallableNode {
 	returnType: ParsedTypeNode;
 }
 
+interface StringNode {
+	kind: TypeKind.StringLiteral;
+	value: string;
+	quote: 'single' | 'double';
+}
+
 class TypeParser {
 	public constructor(private _text: string) {}
 
 	public pos: number = 0;
 	private _lastResult: string | null = null;
-
-	private _expect(where: string[], ...accepts: string[]): string | never {
-		const result = this._maybe(...accepts);
-		if (result === null) {
-			const what = accepts.join(' or ');
-			throw new Error(
-				`expected ${what} at offset ${this.pos} at ${where.join('.')}: ${
-					this._text.slice(this.pos, 25) || '<eol>'
-				}`
-			);
-		}
-		return result;
-	}
-
-	private _maybeGeneric(where: string[]): ParsedTypeNode[] | null {
-		if (!this._maybe('<')) {
-			return null;
-		}
-
-		const nodes = [];
-		do {
-			nodes.push(this.parseType([...where, 'generic']));
-		} while (this._maybe(','));
-		this._expect(where, '>');
-		return nodes;
-	}
 
 	private _maybe(...accepts: (string | RegExp)[]): string | null {
 		while (
@@ -155,6 +137,35 @@ class TypeParser {
 			}
 		}
 		return null;
+	}
+
+	private _expect(
+		where: string[],
+		...accepts: (string | RegExp)[]
+	): string | never {
+		const result = this._maybe(...accepts);
+		if (result === null) {
+			const what = accepts.join(' or ');
+			throw new Error(
+				`expected ${what} at offset ${this.pos} at ${where.join('.')}: ${
+					this._text.slice(this.pos, 25) || '<eol>'
+				}`
+			);
+		}
+		return result;
+	}
+
+	private _maybeGeneric(where: string[]): ParsedTypeNode[] | null {
+		if (!this._maybe('<')) {
+			return null;
+		}
+
+		const nodes = [];
+		do {
+			nodes.push(this.parseType([...where, 'generic']));
+		} while (this._maybe(','));
+		this._expect(where, '>');
+		return nodes;
 	}
 
 	parseType(
@@ -222,6 +233,29 @@ class TypeParser {
 				this._expect([...where, 'array'], '{', '<');
 				throw new Error('unreachable');
 			}
+		} else if (this._maybe('"', "'")) {
+			const quote = this._lastResult === '"' ? 'double' : 'single';
+
+			let value = '';
+			while (
+				this._text[this.pos] !== this._lastResult &&
+				this._text[this.pos - 1] !== '\\' &&
+				this.pos < this._text.length
+			) {
+				value += this._text[this.pos];
+				this.pos++;
+			}
+
+			if (this.pos === this._text.length) {
+				throw new Error('unterminated string');
+			}
+
+			this._expect([...where, 'string'], this._lastResult!);
+			node = {
+				kind: TypeKind.StringLiteral,
+				value,
+				quote,
+			};
 		} else if (this._maybe(/(-?)[\\a-zA-Z0-9\-]+/)) {
 			const lastResult = this._lastResult!;
 			node = { kind: TypeKind.SimpleValue, value: lastResult };

@@ -114,6 +114,11 @@ class TypePrinter {
 			}
 			this._print('): ');
 			this.printType(node.returnType);
+		} else if (node.kind === TypeKind.StringLiteral) {
+			const quote = node.quote === 'single' ? "'" : '"';
+			this._print(quote + node.value + quote);
+		} else {
+			assertUnreachable(node);
 		}
 	}
 
@@ -121,6 +126,10 @@ class TypePrinter {
 		this._lines.push(this._line);
 		return this._lines;
 	}
+}
+
+function assertUnreachable(x: never): never {
+	throw new Error('Unexpected object: ' + x);
 }
 
 export function printType(

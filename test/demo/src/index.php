@@ -23,7 +23,7 @@ class DemoFile {
 	 * @param array<string, array<int, array<string, mixed>>> $userData Multi-dimensional array of user data
 	 * @param callable(mixed): mixed $transformCallback Callback function to transform individual data points
 	 * @param array{
-	 * 	aggregation: string,
+	 * 	aggregation: 'a'|''|'cdwda'|"dwada",
 	 * 	filters: array<int, array{
 	 * 		field: string,
 	 * 		operator: string,
