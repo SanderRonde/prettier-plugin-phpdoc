@@ -1,5 +1,5 @@
 import { PrettierOptions } from './options';
-import { ParsedTypeNode, TupleDictEntryWithKey, TypeKind } from './type-parser';
+import { ParsedTypeNode, TypeKind } from './type-parser';
 
 export function getNextWrapLevel(wrapLevel: WrapLevel): WrapLevel | null {
 	const next = wrapLevel + 1;
