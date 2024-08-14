@@ -10,6 +10,8 @@ const TAGS_WITH_TYPES = [
 	'type',
 	'throws',
 	'var',
+	'phpstan-var',
+	'phpstan-param',
 ];
 
 export enum CommentNodeType {
