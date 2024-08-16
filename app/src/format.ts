@@ -44,8 +44,7 @@ function formatPhpDoc(
 		if (
 			isMultiline ||
 			printedCommentLines.length > 1 ||
-			printedCommentLines[0].length + padding.length >
-				(options.phpDocPrintWidth ?? options.printWidth)
+			printedCommentLines[0].length + padding.length > options.printWidth
 		) {
 			comment.value = `${COMMENT_START}\n${printedCommentLines
 				.map((line) => LINE_PREFIX + line)

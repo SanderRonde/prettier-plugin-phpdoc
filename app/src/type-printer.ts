@@ -30,9 +30,6 @@ class TypePrinter {
 	) {}
 
 	private get _whiteSpace() {
-		if (this._options.indent) {
-			return this._options.indent;
-		}
 		const hasTabs = this._options.useTabs;
 		if (hasTabs) {
 			return '\t';
@@ -40,12 +37,31 @@ class TypePrinter {
 		return ' '.repeat(this._options.tabWidth);
 	}
 
+	private _hasLevel(level: WrapLevel): boolean {
+		return level <= this._wrapLevel;
+	}
+
+	private _changeIndent(level: WrapLevel, operation: '+1' | '-1') {
+		if (!this._hasLevel(level)) {
+			return;
+		}
+		if (operation === '+1') {
+			this._indent++;
+		} else {
+			this._indent--;
+		}
+	}
+
 	private _newline(level: WrapLevel) {
-		if (level > this._wrapLevel) {
+		if (!this._hasLevel(level)) {
 			return;
 		}
 		this._lines.push(this._line);
-		this._line = this._whiteSpace.repeat(this._indent);
+		if (this._indent) {
+			this._line = ' ' + this._whiteSpace.repeat(this._indent);
+		} else {
+			this._line = '';
+		}
 	}
 
 	private _print(text: string): void {
@@ -54,24 +70,40 @@ class TypePrinter {
 
 	printType(node: ParsedTypeNode) {
 		if (node.kind === TypeKind.Maybe) {
-			this._print('?');
-			this.printType(node.type);
+			if (this._options.expandNull) {
+				this.printType({
+					kind: TypeKind.Union,
+					types: [
+						{ kind: TypeKind.SimpleValue, value: 'null' },
+						node.type,
+					],
+				});
+			} else {
+				this._print('?');
+				this.printType(node.type);
+			}
 		} else if (node.kind === TypeKind.SimpleValue) {
 			this._print(node.value);
 		} else if (node.kind === TypeKind.WithGenerics) {
 			this.printType(node.node);
 
-			this._indent++;
+			this._changeIndent(WrapLevel.L2, '+1');
 			this._print('<');
 			this._newline(WrapLevel.L2);
 			for (let i = 0; i < node.generics.length; i++) {
-				if (i > 0) {
+				this.printType(node.generics[i]);
+				// Trailing comma
+				if (
+					i !== node.generics.length - 1 ||
+					this._hasLevel(WrapLevel.L2)
+				) {
 					this._print(', ');
+				}
+				if (i !== node.generics.length - 1) {
 					this._newline(WrapLevel.L2);
 				}
-				this.printType(node.generics[i]);
 			}
-			this._indent--;
+			this._changeIndent(WrapLevel.L2, '-1');
 			this._newline(WrapLevel.L2);
 			this._print('>');
 		} else if (node.kind === TypeKind.StaticAccess) {
@@ -85,7 +117,7 @@ class TypePrinter {
 					? WrapLevel.L1
 					: WrapLevel.L3;
 				// This is a dictionary
-				this._indent++;
+				this._changeIndent(wrapLevel, '+1');
 				this._newline(wrapLevel);
 				for (let i = 0; i < node.entries.length; i++) {
 					const entry = node.entries[i];
@@ -99,12 +131,18 @@ class TypePrinter {
 					} else {
 						this.printType(node.entries[i].value);
 					}
-					if (i !== node.entries.length - 1) {
+					// Trailing comma
+					if (
+						i !== node.entries.length - 1 ||
+						this._hasLevel(wrapLevel)
+					) {
 						this._print(', ');
+					}
+					if (i !== node.entries.length - 1) {
 						this._newline(wrapLevel);
 					}
 				}
-				this._indent--;
+				this._changeIndent(wrapLevel, '-1');
 				this._newline(wrapLevel);
 			}
 			this._print('}');
@@ -122,11 +160,35 @@ class TypePrinter {
 			this.printType(node.type);
 			this._print('[]');
 		} else if (node.kind === TypeKind.Union) {
+			const types: ParsedTypeNode[] = [];
 			for (let i = 0; i < node.types.length; i++) {
-				if (i > 0) {
-					this._print('|');
+				const type = node.types[i];
+				// If there is a `null` in here, move it to the front
+				if (
+					type.kind === TypeKind.SimpleValue &&
+					type.value === 'null'
+				) {
+					types.unshift(type);
+					// If there is a nullable type in a union, split up the null
+				} else if (
+					this._options.expandNull &&
+					type.kind === TypeKind.Maybe
+				) {
+					types.unshift({
+						kind: TypeKind.SimpleValue,
+						value: 'null',
+					});
+					types.push(type.type);
+				} else {
+					types.push(type);
 				}
-				this.printType(node.types[i]);
+			}
+
+			for (let i = 0; i < types.length; i++) {
+				if (i > 0) {
+					this._print(' | ');
+				}
+				this.printType(types[i]);
 			}
 		} else if (node.kind === TypeKind.Callable) {
 			this.printType(node.node);
@@ -150,7 +212,7 @@ class TypePrinter {
 			this.printType(node.type);
 			this._print(')');
 		} else if (node.kind === TypeKind.ConditionalType) {
-			this._indent++;
+			this._changeIndent(WrapLevel.L3, '+1');
 			this._newline(WrapLevel.L3);
 			this.printType(node.check);
 			this._print(' is ');
@@ -161,7 +223,7 @@ class TypePrinter {
 			this._newline(WrapLevel.L3);
 			this._print(' : ');
 			this.printType(node.falseType);
-			this._indent--;
+			this._changeIndent(WrapLevel.L3, '-1');
 		} else if (node.kind === TypeKind.Spread) {
 			this._print('...');
 		} else if (node.kind === TypeKind.ModifierKeyword) {

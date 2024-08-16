@@ -1,3 +1,7 @@
-export function trimSpaces(text: string) {
-	return text.replace(/^\s+/, '').replace(/\s+$/, '');
+export function trimSpacesRight(text: string) {
+	return text.replace(/\s+$/, '');
+}
+
+export function trimSpacesleft(text: string) {
+	return text.replace(/^\s+/, '');
 }

@@ -1,6 +1,6 @@
 import { CommentNodeType, ParsedCommentNode } from './comment-parser';
 import { getNextWrapLevel, printType, WrapLevel } from './type-printer';
-import { trimSpaces } from './util';
+import { trimSpacesRight } from './util';
 import { PrettierOptions } from './options';
 
 interface WrapConfig {
@@ -24,12 +24,12 @@ function pushWrappingText(
 				(line + word).replace(/\t/g, () => ' '.repeat(config.tabWidth))
 					.length > config.width
 			) {
-				lines.push(trimSpaces(line));
+				lines.push(trimSpacesRight(line));
 				line = '';
 			}
 			line += word + ' ';
 		}
-		lines.push(trimSpaces(line));
+		lines.push(trimSpacesRight(line));
 	}
 	return lines;
 }
@@ -40,16 +40,17 @@ export function printComment(
 	defaultIndent: string
 ): string[] {
 	const remainingWidth =
-		(options.phpDocPrintWidth || options.printWidth) -
-		(defaultIndent.length + ' * '.length);
+		options.printWidth - (defaultIndent.length + ' * '.length);
 
+	let didInsertNewline = false;
 	const config: WrapConfig = {
 		width: remainingWidth,
 		tabWidth: options.tabWidth,
 		shouldWrap: options.wrapText,
 	};
 	const lines: string[] = [];
-	for (const node of nodes) {
+	for (let i = 0; i < nodes.length; i++) {
+		const node = nodes[i];
 		if (node.type === CommentNodeType.Text) {
 			// Plain text, now wrap it to the desired line length
 			lines.push(...pushWrappingText(node.content, config));
@@ -59,6 +60,14 @@ export function printComment(
 				...pushWrappingText(`${node.tag} ${node.description}`, config)
 			);
 		} else {
+			if (
+				!didInsertNewline &&
+				nodes[i - 1]?.type === CommentNodeType.Text
+			) {
+				lines.push('');
+				didInsertNewline = true;
+			}
+
 			// The type needs to be printed and wrapped in the process.
 			let wrapLevel: WrapLevel | null = WrapLevel.Never;
 			const unwrappedType = printType(
@@ -67,8 +76,13 @@ export function printComment(
 				wrapLevel
 			).join('');
 			const descriptionParts = node.description.split(' ');
-			const unwrappedMinLine = trimSpaces(
-				`${node.tag} ${unwrappedType} ${descriptionParts[0]}`
+			const nonWrappingPartsLength = node.parsedType ? 2 : 1;
+			const nonWrappingParts = descriptionParts
+				.slice(0, nonWrappingPartsLength)
+				.join(' ');
+
+			const unwrappedMinLine = trimSpacesRight(
+				`${node.tag} ${unwrappedType} ${nonWrappingParts}`
 			);
 			if (unwrappedMinLine.length <= remainingWidth) {
 				// No need to wrap the type, just print this
@@ -100,18 +114,29 @@ export function printComment(
 				lines.push(`${node.tag} ${wrappedType[0]}`);
 				lines.push(...wrappedType.slice(1));
 				if (node.description) {
-					lines[lines.length - 1] += ` ${descriptionParts[0]}`;
+					lines[lines.length - 1] += ` ${nonWrappingParts}`;
 				}
-				if (descriptionParts.length > 1) {
-					lines.push(
-						...pushWrappingText(
-							` ${descriptionParts.slice(1)}`,
-							config
-						)
+				if (descriptionParts.length > nonWrappingPartsLength) {
+					const newLines = pushWrappingText(
+						` ${descriptionParts.slice(nonWrappingPartsLength).join(' ')}`,
+						config,
+						lines[lines.length - 1]
 					);
+					lines.pop();
+					lines.push(...newLines);
 				}
 			}
 		}
 	}
-	return lines;
+
+	// Ensure there are no two adjacent empty lines
+	const cleanedLines: string[] = [];
+	for (let i = 0; i < lines.length; i++) {
+		if (lines[i - 1] === '' && lines[i] === '') {
+			continue;
+		}
+		cleanedLines.push(lines[i]);
+	}
+
+	return cleanedLines;
 }

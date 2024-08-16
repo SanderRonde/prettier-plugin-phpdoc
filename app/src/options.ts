@@ -1,9 +1,8 @@
 import { ParserOptions, SupportOption } from 'prettier';
 
 interface PluginOptions {
-	phpDocPrintWidth?: number;
 	wrapText: boolean;
-	indent?: string;
+	expandNull: boolean;
 }
 
 export interface PrettierOptions extends ParserOptions, PluginOptions {}
@@ -11,20 +10,16 @@ export interface PrettierOptions extends ParserOptions, PluginOptions {}
 export const options: {
 	[K in keyof PluginOptions]: SupportOption;
 } = {
-	phpDocPrintWidth: {
-		category: 'Global',
-		type: 'int',
-		description: 'Print width for PHPDoc (defaults to `printWidth`)',
-	},
 	wrapText: {
 		category: 'Global',
 		type: 'boolean',
 		description: 'Wether to wrap text or not',
 		default: false,
 	},
-	indent: {
+	expandNull: {
 		category: 'Global',
-		type: 'string',
-		description: 'Indent to use, defaults to prettier config',
+		type: 'boolean',
+		description: 'Wether to expand ?int (and other types) to int|null or not',
+		default: false,
 	},
 };

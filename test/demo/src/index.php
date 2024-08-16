@@ -10,7 +10,7 @@ class DemoFile {
 	public static $someVar = [];
 
 	/**
-	 * @param array{title: string, description: string, body: string|bool} $param
+	 * @param array{title: string, description: string, body: string | bool} $param
 	 */
 	public static function someFn(array $param) {
 		// Inline comment
@@ -19,34 +19,35 @@ class DemoFile {
 
 	/**
 	 * This is a very long text that will wrap. This is a very long text that will wrap. This is a very long text that will wrap. This is a very long text that will wrap.
+	 *
 	 * @param array<string, array<int, array<string, mixed>>> $userData Multi-dimensional array of user data
 	 * @param callable(mixed $withVar, int): mixed $transformCallback Callback function to transform individual data points
 	 * @param array{
-	 * 	aggregation: 'a'|''|'cdwda'|"dwada",
-	 * 	filters: array<int, array{
-	 * 		field: string,
-	 * 		operator: string,
-	 * 		value: mixed
-	 * 	}>,
-	 * 	groupBy: string|null,
-	 * 	sortBy: array<string, string>,
-	 * 	limit: positive-int|null
+	 *  	aggregation: 'a' | '' | 'cdwda' | "dwada",
+	 *  	filters: array<int, array{
+	 *  		field: string,
+	 *  		operator: string,
+	 *  		value: mixed,
+	 *  	}>,
+	 *  	groupBy: null | string,
+	 *  	sortBy: array<string, string>,
+	 *  	limit: null | positive-int,
 	 * } $options Configuration options for report generation
 	 * @param bool $useCache Whether to use cached results if available
 	 * @param ?DateTimeInterface $cacheExpiry Expiration time for cache entries
 	 *
 	 * @return array{
-	 * 	summary: array{
-	 * 		totalUsers: int,
-	 * 		avgScore: float,
-	 * 		topPerformer: string|null
-	 * 	},
-	 * 	detailedReport: array<int, array<string, mixed>>,
-	 * 	metadata: array{
-	 * 		generatedAt: DateTimeInterface,
-	 * 		dataVersion: string,
-	 * 		appliedFilters: int
-	 * 	}
+	 *  	summary: array{
+	 *  		totalUsers: int,
+	 *  		avgScore: float,
+	 *  		topPerformer: null | string,
+	 *  	},
+	 *  	detailedReport: array<int, array<string, mixed>>,
+	 *  	metadata: array{
+	 *  		generatedAt: DateTimeInterface,
+	 *  		dataVersion: string,
+	 *  		appliedFilters: int,
+	 *  	},
 	 * }
 	 * @throws InvalidArgumentException If $userData is empty or $options are invalid
 	 * @throws RuntimeException If data processing encounters critical errors

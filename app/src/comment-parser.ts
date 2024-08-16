@@ -1,4 +1,4 @@
-import { trimSpaces } from './util';
+import { trimSpacesleft, trimSpacesRight } from './util';
 import { ParsedTypeNode, parseType } from './type-parser';
 import { Comment } from 'php-parser';
 
@@ -37,15 +37,17 @@ function parseCommentNodes(comment: string) {
 	comment = comment.replace(/^\/\*\*?/, '').replace(/\s*\*\/$/, '');
 	// Strip out any asterisks
 	comment = comment.replace(/^\s*\*+/gm, '');
-	// Strip out whitespace
-	comment = comment.trim();
 
 	const lines = comment.split('\n');
 	const nodes: CommentNode[] = [];
 	for (let i = 0; i < lines.length; i++) {
-		const trimmedLine = trimSpaces(lines[i]);
-		if (trimmedLine.startsWith('@')) {
-			const [tag, ...descriptionParts] = trimmedLine.split(/\s/);
+		let trimmedLine = trimSpacesRight(lines[i]);
+		if (trimmedLine[0] === ' ') {
+			trimmedLine = trimmedLine.slice(1);
+		}
+		if (trimSpacesleft(trimmedLine).startsWith('@')) {
+			const [tag, ...descriptionParts] =
+				trimSpacesleft(trimmedLine).split(/\s/);
 			const description = descriptionParts.join(' ');
 
 			nodes.push({

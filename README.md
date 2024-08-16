@@ -20,5 +20,5 @@ module.exports = {
 
 ### Options
 
--   `phpDocPrintWidth`: (default: `printWidth`) Specify the line length that the printer will wrap PHPDoc on.
 -   `wrapText`: (default: `false`) Whether to wrap text in PHPDoc
+-   `expandNull`: (default: `false`) Whether to expand `?int` (and other types) to `null|int`
