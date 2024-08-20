@@ -3,6 +3,15 @@
 /** @var array<string, array{bool, ?int}> */
 $someVar = [];
 
+/**
+ * @var array{
+ *  	a: bool,
+ *  	b: string,
+ *  	c: int,
+ * }
+ */
+$someVar = [];
+
 class DemoFile {
 	/**
 	 * @var array<string, array{bool, ?int}>
@@ -10,7 +19,11 @@ class DemoFile {
 	public static $someVar = [];
 
 	/**
-	 * @param array{title: string, description: string, body: string | bool} $param
+	 * @param array{
+	 *  	title: string,
+	 *  	description: string,
+	 *  	body: string | bool,
+	 * } $param
 	 */
 	public static function someFn(array $param) {
 		// Inline comment

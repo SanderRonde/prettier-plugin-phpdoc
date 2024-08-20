@@ -10,7 +10,7 @@ export function getNextWrapLevel(wrapLevel: WrapLevel): WrapLevel | null {
 }
 
 export enum WrapLevel {
-	Never,
+	Always,
 	/** Dictionaries */
 	L1,
 	/** Generics */
@@ -113,9 +113,14 @@ class TypePrinter {
 		} else if (node.kind === TypeKind.TupleDict) {
 			this._print('array{');
 			if (node.entries.length) {
-				const wrapLevel = node.entries.every((entry) => entry.key)
+				let wrapLevel = node.entries.every((entry) => entry.key)
 					? WrapLevel.L1
 					: WrapLevel.L3;
+
+				if (node.entries.length > 2) {
+					wrapLevel = WrapLevel.Always;
+				}
+
 				// This is a dictionary
 				this._changeIndent(wrapLevel, '+1');
 				this._newline(wrapLevel);

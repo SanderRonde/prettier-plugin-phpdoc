@@ -69,62 +69,37 @@ export function printComment(
 			}
 
 			// The type needs to be printed and wrapped in the process.
-			let wrapLevel: WrapLevel | null = WrapLevel.Never;
-			const unwrappedType = printType(
-				node.parsedType,
-				options,
-				wrapLevel
-			).join('');
 			const descriptionParts = node.description.split(' ');
 			const nonWrappingPartsLength = node.parsedType ? 2 : 1;
 			const nonWrappingParts = descriptionParts
 				.slice(0, nonWrappingPartsLength)
 				.join(' ');
 
-			const unwrappedMinLine = trimSpacesRight(
-				`${node.tag} ${unwrappedType} ${nonWrappingParts}`
+			let wrapLevel: WrapLevel | null = WrapLevel.Always;
+			let formattedType: string[] = [];
+			do {
+				formattedType = printType(node.parsedType, options, wrapLevel);
+				wrapLevel = getNextWrapLevel(wrapLevel);
+			} while (
+				wrapLevel &&
+				[`${node.tag} ${formattedType[0]}`, ...formattedType].some(
+					(line) => line.length > remainingWidth
+				)
 			);
-			if (unwrappedMinLine.length <= remainingWidth) {
-				// No need to wrap the type, just print this
-				lines.push(
-					...pushWrappingText(
-						node.description ? ` ${node.description}` : '',
-						config,
-						`${node.tag} ${unwrappedType}`
-					)
-				);
-			} else {
-				// The type needs to be wrapped, see what level we can get away with
-				wrapLevel = WrapLevel.L1;
-				let wrappedType: string[] = [];
-				do {
-					wrappedType = printType(
-						node.parsedType,
-						options,
-						wrapLevel
-					);
-					wrapLevel = getNextWrapLevel(wrapLevel);
-				} while (
-					wrapLevel &&
-					[`${node.tag} ${wrappedType[0]}`, ...wrappedType].some(
-						(line) => line.length > remainingWidth
-					)
-				);
 
-				lines.push(`${node.tag} ${wrappedType[0]}`);
-				lines.push(...wrappedType.slice(1));
-				if (node.description) {
-					lines[lines.length - 1] += ` ${nonWrappingParts}`;
-				}
-				if (descriptionParts.length > nonWrappingPartsLength) {
-					const newLines = pushWrappingText(
-						` ${descriptionParts.slice(nonWrappingPartsLength).join(' ')}`,
-						config,
-						lines[lines.length - 1]
-					);
-					lines.pop();
-					lines.push(...newLines);
-				}
+			lines.push(`${node.tag} ${formattedType[0]}`);
+			lines.push(...formattedType.slice(1));
+			if (node.description) {
+				lines[lines.length - 1] += ` ${nonWrappingParts}`;
+			}
+			if (descriptionParts.length > nonWrappingPartsLength) {
+				const newLines = pushWrappingText(
+					` ${descriptionParts.slice(nonWrappingPartsLength).join(' ')}`,
+					config,
+					lines[lines.length - 1]
+				);
+				lines.pop();
+				lines.push(...newLines);
 			}
 		}
 	}
