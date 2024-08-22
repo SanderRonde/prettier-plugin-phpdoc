@@ -68,6 +68,72 @@ class TypePrinter {
 		this._line += text;
 	}
 
+	private _preprocessType(node: any): any {
+		if (typeof node !== 'object' || !node) {
+			return node;
+		}
+
+		if ('kind' in node) {
+			if (node.kind === TypeKind.Maybe) {
+				if (this._options.expandNull) {
+					node = {
+						kind: TypeKind.Union,
+						types: [
+							{
+								kind: TypeKind.SimpleValue,
+								value: 'null',
+							},
+							node.type,
+						],
+					};
+				}
+			} else if (node.kind === TypeKind.Union) {
+				const types: ParsedTypeNode[] = [];
+				for (let i = 0; i < node.types.length; i++) {
+					const type = node.types[i];
+					// If there is a `null` in here, move it to the front
+					if (
+						type.kind === TypeKind.SimpleValue &&
+						type.value === 'null'
+					) {
+						types.unshift(this.preprocessType(type));
+						// If there is a nullable type in a union, split up the null
+					} else if (
+						this._options.expandNull &&
+						type.kind === TypeKind.Maybe
+					) {
+						types.unshift(
+							this.preprocessType({
+								kind: TypeKind.SimpleValue,
+								value: 'null',
+							})
+						);
+						types.push(this.preprocessType(type.type));
+					} else {
+						types.push(this.preprocessType(type));
+					}
+				}
+				node = {
+					...node,
+					types,
+				};
+			}
+		}
+
+		if (Array.isArray(node)) {
+			return node.map((item) => this.preprocessType(item));
+		}
+		const preprocessedNode: any = {};
+		for (let key in node) {
+			preprocessedNode[key] = this.preprocessType(node[key]);
+		}
+		return preprocessedNode;
+	}
+
+	preprocessType(node: ParsedTypeNode): ParsedTypeNode {
+		return this._preprocessType(node);
+	}
+
 	printType(node: ParsedTypeNode) {
 		if (node.kind === TypeKind.Maybe) {
 			if (this._options.expandNull) {
@@ -208,7 +274,14 @@ class TypePrinter {
 				}
 			}
 			this._print('): ');
-			this.printType(node.returnType);
+			if (node.returnType.kind === TypeKind.Union) {
+				this.printType({
+					kind: TypeKind.Parentheses,
+					type: node.returnType,
+				});
+			} else {
+				this.printType(node.returnType);
+			}
 		} else if (node.kind === TypeKind.StringLiteral) {
 			const quote = node.quote === 'single' ? "'" : '"';
 			this._print(quote + node.value + quote);
@@ -256,6 +329,6 @@ export function printType(
 	wrapLevel: WrapLevel
 ) {
 	const printer = new TypePrinter(wrapLevel, options);
-	printer.printType(node);
+	printer.printType(printer.preprocessType(node));
 	return printer.getLines();
 }
