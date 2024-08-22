@@ -349,7 +349,7 @@ class TypeParser {
 				node = {
 					kind: TypeKind.StaticAccess,
 					class: node,
-					member: this.parseType([...where, 'static-access']),
+					member: this.parseType([...where, 'static-access'], false),
 				};
 			}
 		} else if (this._maybe('(')) {
