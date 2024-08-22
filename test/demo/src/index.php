@@ -3,15 +3,6 @@
 /** @var array<string, array{bool, ?int}> */
 $someVar = [];
 
-/**
- * @var array{
- *  	a: bool,
- *  	b: string,
- *  	c: int,
- * }
- */
-$someVar = [];
-
 class DemoFile {
 	/**
 	 * @var array<string, array{bool, ?int}>
