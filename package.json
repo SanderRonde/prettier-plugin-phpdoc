@@ -1,40 +1,37 @@
 {
 	"name": "prettier-plugin-phpdoc",
-	"version": "1.8.5",
-	"description": "A prettier plugin for sorting PHPDoc",
-	"main": "dist/index.js",
-	"repository": "https://github.com/SanderRonde/prettier-plugin-phpdoc.git",
+	"version": "1.0.0",
 	"author": "Sander Ronde <awsdfgvhbjn@gmail.com>",
-	"license": "MIT",
+	"repository": "https://github.com/SanderRonde/prettier-plugin-phpdoc.git",
+	"main": "dist/index.js",
 	"devDependencies": {
 		"@prettier/plugin-php": "^0.22.2",
-		"@types/": "prettier/plugin-php",
 		"@types/node": "^14.11.2",
 		"esbuild": "^0.19.10",
 		"php-parser": "^3.1.5",
 		"typescript": "^5.3.3"
 	},
-	"dependencies": {
-		"prettier": "^3.3.3"
-	},
 	"peerDependencies": {
 		"@prettier/plugin-php": "^0.22.2",
+		"prettier": "^3.3.3",
 		"typescript": ">4.0.0"
 	},
+	"description": "A prettier plugin for sorting PHPDoc",
+	"files": [
+		"dist/**"
+	],
 	"keywords": [
 		"prettier",
 		"plugin",
 		"phpdoc",
 		"php"
 	],
-	"files": [
-		"dist/**"
-	],
+	"license": "MIT",
 	"scripts": {
-		"prepublish": "yarn prepack",
+		"prepublish": "bun prepack",
 		"bundle": "esbuild --bundle --platform=node --external:typescript --external:prettier --outfile=dist/index.js app/index.ts --minify",
 		"bundle:dev": "esbuild --bundle --platform=node --external:typescript --external:prettier --outfile=dist/index.js app/index.ts",
-		"prepack": "yarn format && tsc && yarn bundle",
+		"prepack": "bun format && tsc && bun bundle",
 		"format": "prettier --write app"
 	}
 }

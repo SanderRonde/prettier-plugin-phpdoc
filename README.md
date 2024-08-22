@@ -14,11 +14,11 @@ npm install --save-dev prettier-plugin-phpdoc
 
 ```js
 module.exports = {
-	plugins: ['./node_modules/prettier-plugin-sort-imports/dist/index.js'],
+	plugins: ['./node_modules/prettier-plugin-phpdoc/dist/index.js'],
 };
 ```
 
 ### Options
 
--   `wrapText`: (default: `false`) Whether to wrap text in PHPDoc
+-   `wrapText`: (default: `false`) Whether to wrap text in PHPDoc after it crosses `printWidth`
 -   `expandNull`: (default: `false`) Whether to expand `?int` (and other types) to `null|int`

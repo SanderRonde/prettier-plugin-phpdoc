@@ -19,7 +19,8 @@ export const options: {
 	expandNull: {
 		category: 'Global',
 		type: 'boolean',
-		description: 'Wether to expand ?int (and other types) to int|null or not',
+		description:
+			'Wether to expand ?int (and other types) to int|null or not',
 		default: false,
 	},
 };
