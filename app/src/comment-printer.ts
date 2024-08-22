@@ -34,6 +34,16 @@ function pushWrappingText(
 	return lines;
 }
 
+function pushToLines(lines: string[], text: string): string[] {
+	const textLines = text.split('\n');
+	if (lines.length === 0) {
+		textLines
+	}
+
+	lines[lines.length - 1] += textLines[0];
+	return [...lines, ...textLines.slice(1)]
+}
+
 export function printComment(
 	nodes: ParsedCommentNode[],
 	options: PrettierOptions,
@@ -48,7 +58,7 @@ export function printComment(
 		tabWidth: options.tabWidth,
 		shouldWrap: options.wrapText,
 	};
-	const lines: string[] = [];
+	let lines: string[] = [];
 	for (let i = 0; i < nodes.length; i++) {
 		const node = nodes[i];
 		if (node.type === CommentNodeType.Text) {
@@ -90,7 +100,7 @@ export function printComment(
 			lines.push(`${node.tag} ${formattedType[0]}`);
 			lines.push(...formattedType.slice(1));
 			if (node.description) {
-				lines[lines.length - 1] += ` ${nonWrappingParts}`;
+				lines = pushToLines(lines, ` ${nonWrappingParts}`);
 			}
 			if (descriptionParts.length > nonWrappingPartsLength) {
 				const newLines = pushWrappingText(
