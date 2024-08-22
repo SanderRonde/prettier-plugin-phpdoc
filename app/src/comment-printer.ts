@@ -37,11 +37,11 @@ function pushWrappingText(
 function pushToLines(lines: string[], text: string): string[] {
 	const textLines = text.split('\n');
 	if (lines.length === 0) {
-		textLines
+		return textLines;
 	}
 
 	lines[lines.length - 1] += textLines[0];
-	return [...lines, ...textLines.slice(1)]
+	return [...lines, ...textLines.slice(1)];
 }
 
 export function printComment(
