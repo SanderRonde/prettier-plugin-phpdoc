@@ -1,5 +1,9 @@
 ## Changelog
 
+### 1.0.5
+
+-   Don't format non-PHPDoc comments (those that don't start with `/**`)
+
 ### 1.0.4
 
 -   Don't consume unions inside statics
