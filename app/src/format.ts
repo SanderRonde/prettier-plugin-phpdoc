@@ -18,7 +18,7 @@ function formatPhpDoc(
 	const lines = text.split('\n');
 	// Wow they conveniently put all comments in a single top-level array
 	program.comments = program.comments.map((comment) => {
-		if (comment.kind === 'commentline') {
+		if (comment.kind === 'commentline' || !comment.value.startsWith('/**')) {
 			return comment;
 		}
 
