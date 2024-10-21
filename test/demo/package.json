@@ -8,6 +8,6 @@
 		"prettier": "^3.3.3"
 	},
 	"scripts": {
-		"demo": "yarn --cwd ../../ bundle:dev && yarn prettier --write src/index.php"
+		"demo": "bun --cwd ../../ bundle:dev && bun prettier --write src/index.php"
 	}
 }
