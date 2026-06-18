@@ -369,6 +369,17 @@ class TypeParser {
 			node = {
 				kind: TypeKind.Spread,
 			};
+			// Support typed unsealed array shapes, e.g. `array{foo: T, ...<int, V>}`.
+			// The spread may be followed by a generic describing the rest key/value
+			// types; wrap it so the printer emits `...<...>` again.
+			const generics = this._maybeGeneric([...where, 'spread']);
+			if (generics) {
+				node = {
+					kind: TypeKind.WithGenerics,
+					node,
+					generics,
+				};
+			}
 		} else {
 			throw new Error(
 				`unexpected token at ${where.join('.')}: ${this._text.slice(this.pos, 25)}`

@@ -88,4 +88,18 @@ class DemoFile {
 	/** @param key-of<self::C[string]> $key */
 	public function phpstanSpecific(array $x): void {
 	}
+
+	/**
+	 * Unsealed array shapes (PHPStan): a sealed shape plus a typed rest.
+	 *
+	 * @param array{href: string, ...<int, Html|string|null>} $inlineRest
+	 * @param array{
+	 *  	header?: null | Html,
+	 *  	footerDark?: bool,
+	 *  	...<int, Html|string|null>,
+	 * } $wrappedRest
+	 * @param array{foo: string, ...} $untypedRest
+	 */
+	public function unsealedShapes(array $inlineRest, array $wrappedRest, array $untypedRest): void {
+	}
 }
