@@ -1,5 +1,13 @@
 ## Changelog
 
+### 1.2.1
+
+-   Support PHPStan sealed array types
+
+### 1.2.0
+
+-   Fix bug in parser, rewrite so that arg order makes more sense
+
 ### 1.1.0
 
 -   Actually use peer version of `@prettier/plugin-php` instead of bundling it
