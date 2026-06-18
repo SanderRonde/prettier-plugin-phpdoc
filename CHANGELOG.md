@@ -1,10 +1,10 @@
 ## Changelog
 
-### 1.2.2
+### 1.3.1
 
 -   Support PHPStan sealed array types
 
-### 1.2.0
+### 1.3.0
 
 -   Fix bug in parser, rewrite so that arg order makes more sense
 
